@@ -92,7 +92,7 @@ model_zoo.write_text(text)
 PY
 
 # Install rendering dependencies
-RUN python -m pip install pyrender==0.1.45 trimesh==4.3.0
+RUN python -m pip install pyrender==0.1.45 trimesh==4.3.0 
 
 # Install MoGe2 (Microsoft monocular geometry estimator)
 RUN python -m pip install git+https://github.com/microsoft/MoGe.git
@@ -103,6 +103,9 @@ RUN mkdir -p checkpoints/dinov3/assets && \
     cp /root/.cache/huggingface/hub/models--facebook--sam-3d-body-dinov3/model_config.yaml checkpoints/dinov3/ && \
     cp -r /root/.cache/huggingface/hub/models--facebook--sam-3d-body-dinov3/assets/* checkpoints/dinov3/assets/
 
+RUN python -m pip install "numpy<2.0"
+
+
 # Verify pymomentum installation
 RUN python -c "import pymomentum; print('PyMomentum version:', pymomentum.__version__)" || \
     echo "Warning: PyMomentum import test failed, but continuing build"
@@ -110,12 +113,18 @@ RUN python -c "import pymomentum; print('PyMomentum version:', pymomentum.__vers
 # Build command:
 # podman build -t localhost/sam-3d-body --build-arg HF_TOKEN=$HF_TOKEN .
 
+# podman run --rm --hooks-dir=/usr/share/containers/oci/hooks.d --device nvidia.com/gpu=all \-v $(pwd)/data:/workspace/data -v $(pwd)/output:/workspace/output -it sam-3d-body-functional bash
+
+
 # Run command:
 # podman run --rm --hooks-dir=/usr/share/containers/oci/hooks.d --device nvidia.com/gpu=all \
 #   -v "$(pwd)/data":/workspace/data -v "$(pwd)/output":/workspace/output \
 #   -it localhost/sam-3d-body bash
 
 # Demo command (inside container):
+
+# xvfb-run -s "-screen 0 1024x768x24" python demo.py --image_folder /workspace/data --output_folder /workspace/output --checkpoint_path ./checkpoints/dinov3/model.ckpt --mhr_path ./checkpoints/dinov3/assets/mhr_model.pt
+
 # xvfb-run -s "-screen 0 1024x768x24" python demo.py \
 #   --image_folder /workspace/data --output_folder /workspace/output \
 #   --checkpoint_path ./checkpoints/dinov3/model.ckpt \
