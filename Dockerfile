@@ -105,6 +105,18 @@ RUN mkdir -p checkpoints/dinov3/assets && \
 
 RUN python -m pip install "numpy<2.0"
 
+# Pre-populate the torch hub cache with Dinov3 so demo.py doesn't download at runtime
+RUN python - <<'PY'
+import torch
+from pathlib import Path
+
+root = Path("/root/.cache/torch/hub")
+root.mkdir(parents=True, exist_ok=True)
+url = "https://github.com/facebookresearch/dinov3/zipball/main"
+dst = root / "main.zip"
+if not dst.exists():
+    torch.hub.download_url_to_file(url, dst, progress=True)
+PY
 
 # Verify pymomentum installation
 RUN python -c "import pymomentum; print('PyMomentum version:', pymomentum.__version__)" || \
