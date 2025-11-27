@@ -118,9 +118,14 @@ if not dst.exists():
     torch.hub.download_url_to_file(url, dst, progress=True)
 PY
 
+RUN curl -OL https://github.com/facebookresearch/MHR/releases/download/v1.0.0/assets.zip
+RUN apt-get update && apt-get install -y unzip
+RUN unzip assets.zip -d /workspace/mhr-assets
+RUN pip install mhr
+
+
 # Verify pymomentum installation
-RUN python -c "import pymomentum; print('PyMomentum version:', pymomentum.__version__)" || \
-    echo "Warning: PyMomentum import test failed, but continuing build"
+RUN python -c "import importlib.metadata; print('pymomentum version:', importlib.metadata.version('pymomentum'))"
 
 # Build command:
 # podman build -t localhost/sam-3d-body --build-arg HF_TOKEN=$HF_TOKEN .
