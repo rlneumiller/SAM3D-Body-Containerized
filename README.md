@@ -9,7 +9,6 @@ I've taken the liberty of borrowing from whatever open source projects I needed 
 
 ## Prerequisites
 
-* python venv (I used v3.13.5) named .venv (I used `uv venv`)
 * Podman installed (not tested with Docker)
 * NVIDIA GPU with CUDA support
 * NVIDIA Container Toolkit configured for Podman
@@ -30,16 +29,12 @@ podman run --rm --hooks-dir=/usr/share/containers/oci/hooks.d --device nvidia.co
 ## Run demo.py from within the container
 
 ```bash
+./run_inference
+
+# or the long version
+
 xvfb-run -s "-screen 0 1024x768x24" python demo.py --image_folder /workspace/data --output_folder /workspace/output --checkpoint_path ./checkpoints/dinov3/model.ckpt --mhr_path ./checkpoints/dinov3/assets/mhr_model.pt
 ```
-
------------------------------------------------------------------
-
-* Other stuff I haven't bothered with yet
-
------------------------------------------------------------------
-
-## Other stuff I haven't bothered with yet
 
 ## Directory Structure
 
@@ -51,7 +46,6 @@ xvfb-run -s "-screen 0 1024x768x24" python demo.py --image_folder /workspace/dat
 
 - The container runs root user
 - GPU access is provided via `--device nvidia.com/gpu=all`
-- Volumes are mounted with `:Z` for SELinux compatibility
 
 ## Troubleshooting
 
