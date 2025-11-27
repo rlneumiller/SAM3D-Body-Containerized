@@ -151,6 +151,14 @@ text = '\n'.join(new_lines)
 dinov3_file.write_text(text)
 PY
 
+# Patch checkpoint loader warning message to match local changes
+RUN awk 'match($0,/^[[:space:]]*/){ind=substr($0,RSTART,RLENGTH)} \
+    /log.warning\(err_msg\)/ {print ind "log.warning(\"Removed erroneous warning about missing keys.\")"; next} {print}' \
+  /workspace/sam-3d-body/sam_3d_body/utils/checkpoint.py \
+  > /workspace/sam-3d-body/sam_3d_body/utils/checkpoint.py.tmp \
+  && mv /workspace/sam-3d-body/sam_3d_body/utils/checkpoint.py.tmp \
+      /workspace/sam-3d-body/sam_3d_body/utils/checkpoint.py
+
 # Patch MHRHead to remove momentum warnings since we won't be using momentum
 RUN awk 'match($0,/^[[:space:]]*/){ind=substr($0,RSTART,RLENGTH)} \
     /warnings\.warn\("Momentum is not enabled"\)/ {print ind "# " substr($0,RLENGTH+1); next} {print}' \
