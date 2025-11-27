@@ -127,6 +127,46 @@ RUN pip install mhr
 # Verify pymomentum installation
 RUN python -c "import importlib.metadata; print('pymomentum version:', importlib.metadata.version('pymomentum'))"
 
+# Patch Dinov3Backbone to remove drop_path kwarg (not needed for inference, eliminates warning)
+RUN python - <<'PY'
+from pathlib import Path
+dinov3_file = Path("/workspace/sam-3d-body/sam_3d_body/models/backbones/dinov3.py")
+text = dinov3_file.read_text()
+# Remove the drop_path line
+lines = text.split('\n')
+new_lines = []
+skip_next = False
+for line in lines:
+    if 'drop_path=self.cfg.MODEL.BACKBONE.DROP_PATH_RATE' in line:
+        # Remove this line and the preceding comma if any
+        if new_lines and new_lines[-1].strip().endswith(','):
+            new_lines[-1] = new_lines[-1].rstrip()[:-1]  # Remove trailing comma
+        skip_next = True
+    elif skip_next and line.strip() == ')':
+        skip_next = False
+        new_lines.append(line)
+    elif not skip_next:
+        new_lines.append(line)
+text = '\n'.join(new_lines)
+dinov3_file.write_text(text)
+PY
+
+# Patch MHRHead to remove momentum warnings since we won't be using momentum
+RUN awk 'match($0,/^[[:space:]]*/){ind=substr($0,RSTART,RLENGTH)} \
+    /warnings\.warn\("Momentum is not enabled"\)/ {print ind "# " substr($0,RLENGTH+1); next} {print}' \
+  /workspace/sam-3d-body/sam_3d_body/models/heads/mhr_head.py \
+  > /workspace/sam-3d-body/sam_3d_body/models/heads/mhr_head.py.tmp \
+  && mv /workspace/sam-3d-body/sam_3d_body/models/heads/mhr_head.py.tmp \
+      /workspace/sam-3d-body/sam_3d_body/models/heads/mhr_head.py \
+  && find /workspace/sam-3d-body -type f -name "*.pyc" -delete \
+  && find /workspace/sam-3d-body -type d -name "__pycache__" -exec rm -rf {} +
+
+# Disable the momentum warning (since it doesn't appear to produce better results)
+ENV MOMENTUM_ENABLED=False
+
+# Create run_inference.sh script
+RUN echo 'xvfb-run -s "-screen 0 1024x768x24" python demo.py --image_folder /workspace/data --output_folder /workspace/output --checkpoint_path ./checkpoints/dinov3/model.ckpt --mhr_path ./checkpoints/dinov3/assets/mhr_model.pt' > run_inference.sh && chmod +x run_inference.sh
+
 # Build command:
 # podman build -t localhost/sam-3d-body --build-arg HF_TOKEN=$HF_TOKEN .
 
